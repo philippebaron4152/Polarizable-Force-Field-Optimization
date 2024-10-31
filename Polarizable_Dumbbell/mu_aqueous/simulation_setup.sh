@@ -1,7 +1,7 @@
 #!/bin/bash
 N_B=1350
 
-vdw=true
+vdw=false
 run_num=1
 prev_run=$((${run_num}-1))
 

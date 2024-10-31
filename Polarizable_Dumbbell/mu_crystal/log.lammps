@@ -1,0 +1,17 @@
+LAMMPS (23 Jun 2022)
+  using 1 OpenMP thread(s) per MPI task
+units            real
+atom_style       full
+boundary         p p p
+
+read_data 	data_crystal.lammps
+Reading data file ...
+  orthogonal box = (-0.24244355 -0.045036511 -0.11424614) to (21.731381 21.533974 21.603184)
+  2 by 2 by 2 MPI processor grid
+  reading atoms ...
+  512 atoms
+  scanning bonds ...
+  1 = max bonds/atom
+ERROR: Unknown identifier in data file: 257 1 257 258
+For more information see https://docs.lammps.org/err0001 (src/read_data.cpp:746)
+Last command: read_data 	data_crystal.lammps
