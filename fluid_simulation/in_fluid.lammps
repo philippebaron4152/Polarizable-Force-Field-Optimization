@@ -1,0 +1,116 @@
+units            real 
+atom_style       full 
+boundary         p p p 
+
+read_data 	    data.lammps                         # Name of LAMMPS Data file 
+
+pair_style 	    lj/cut/coul/long 8.5125             # Cut-off matching Espinosa et. al. (2016)
+special_bonds   lj/coul 0.0 0.0 0.0                 # Turns off intra molecular interactions
+bond_style	    harmonic
+
+variable 	    kB equal 0.001987204259     # Boltzmann constant [kcal / (mol K)]
+
+variable 	    e_AA equal 114.128*${kB}    # solute - solute LJ interaction
+variable        e_AB equal 74.4060*${kB}    # solute - solvent LJ interaction
+variable        e_BB equal 61.6910*${kB}    # solvent - solvent LJ interaction
+
+# 1 -> LJ interaction site (solute), 2 -> Drude particle attached to LJ site, 3 -> Inert secondary site (solute), 4 -> Drude particle attached to secondary site
+# 5 -> LJ bead (solvent)
+
+pair_coeff      1 1     ${e_AA}         3.405
+pair_coeff      1 2     0.0             0.5
+pair_coeff      1 3     0.0             0.5
+pair_coeff      1 4     0.0             0.5
+pair_coeff      1 5     ${e_AB}         3.798
+pair_coeff      2 2     0.0             0.5
+pair_coeff      2 3     0.0             0.5
+pair_coeff      2 4     0.0             0.5
+pair_coeff      2 5     0.0             0.5
+pair_coeff      3 3     0.0             0.5
+pair_coeff      3 4     0.0             0.5
+pair_coeff      3 5     0.0             0.5
+pair_coeff      4 4     0.0             0.5
+pair_coeff      4 5     0.0             0.5
+pair_coeff      5 5     ${e_BB}         3.405
+
+pair_modify 	shift yes               # Shift potential to 0 at cut-off
+kspace_style	pppm 1.0e-6             # Ewald sum method and desired accuracy
+
+variable 	    q equal 0.5             # Drude charge
+variable 	    alpha equal 0.5         # Polarizability [Ang ^-3]
+
+set             type 2 charge ${q}
+set             type 4 charge -${q}
+
+variable 	    K1 equal 0.5*332.0716*(${q}^2)/${alpha}     # Drude spring constant -> 0.5 * [e_to_kcal_conv] * q^2 / alpha
+
+bond_coeff	    1   100000	     0.5                        # Constant 1 - 3 bond
+bond_coeff      2   ${K1}        0.0000 
+bond_coeff      3   ${K1}        0.0000
+
+fix		        DRUDE all drude C D C D N                   # Define polarizable atoms
+
+group		    ATOMS type 1 3 5                            # Group defining core atoms
+group		    DRUDES type 2 4                             # Group defining drude atoms
+
+neighbor         2.0 bin                                    # Neighbor-list settings
+neigh_modify     every 1 delay 0 check yes
+
+min_style 	    cg
+minimize 	    1e-5 1e-5 10000 10000
+
+variable        dt equal 1.0                                # Time-step
+
+variable        TK      equal 50                            # Core temperature (K)
+variable        TDK     equal 1.0                           # Drude temperature (K)
+variable        PBAR    equal 1.0                           # System pressure (bar)    
+
+
+velocity        ATOMS create ${TK} 12345                    # Generate random initial Maxwell-Boltzmann velocities   
+velocity        DRUDES create ${TDK} 12345
+
+comm_modify     vel yes
+
+########################
+# Equilibrate Box (NVT)
+########################
+
+timestep	    0.1
+
+fix             fshake all shake 0.0001 20 0 b 1
+fix             1 all langevin/drude ${TK} 2 123460 ${TDK} 10 123456 zero yes           # Apply dual Langevin thermostat for EL approach
+fix             2 all nve                                                               # Langevin thermostat doesn't integrate, this does
+
+thermo          100
+thermo_style    custom step pe epair ecoul elong ebond lx ly lz vol press
+
+run		        500000
+
+unfix		    1
+unfix 		    2
+
+#######################
+# Production Run (NPT)
+#######################
+
+timestep	${dt}
+
+# Barostat and Thermostat damping constants
+variable        TD equal ${dt}*100
+variable        TDD equal ${dt}*10
+variable        PD equal ${dt}*2000
+
+fix             1 all langevin/drude ${TK} ${TD} 123460 ${TDK} ${TDD} 123456 zero yes   
+fix             2 ATOMS nph iso ${PBAR} ${PBAR} ${PD} dilate all                          # Apply pressure control to non-drudes
+fix             3 DRUDES nve
+compute         TEMP all temp/drude
+
+thermo           100
+thermo_style     custom step c_TEMP[1] c_TEMP[2] pe epair ecoul elong ebond lx ly lz vol press
+
+dump            1 all custom 500 dump.coord id type x y z vx vy vz ix iy iz
+dump_modify     1 sort id format line "%5d %3d %13.8f %13.8f %13.8f %13.8f %13.8f %13.8f %3d %3d %3d" flush yes
+
+run          	5000000
+
+write_data 	OUTFILE nocoeff
