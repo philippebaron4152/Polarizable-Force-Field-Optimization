@@ -7,8 +7,9 @@ prev_run=$((${run_num}-1))
 
 SCRIPTS=/scratch/gpfs/pb4152/Scripts
 
-START=75
-STOP=75
+START=30
+STOP=30
+INCREMENT=0
 
 if [ ${run_num} -eq 1 ]; then
         IN_FILE=data.lammps
@@ -21,7 +22,7 @@ else
         OUT_FILE=run${run_num}_out.lammps
 fi
 
-for (( N_A=${START}; N_A<=${STOP}; N_A=$((${N_A}+20)) )) 
+for (( N_A=${START}; N_A<=${STOP}; N_A=$((${N_A}+${INCREMENT})) )) 
 do
 	D=${N_B}B/${N_A}A/
 	

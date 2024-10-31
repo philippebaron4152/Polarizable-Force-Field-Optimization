@@ -20,8 +20,9 @@ fi
 
 START=30
 STOP=30
+INCREMENT=0
 
-for (( N_A=${START}; N_A<=${STOP}; N_A=$((${N_A}+20)) )) 
+for (( N_A=${START}; N_A<=${STOP}; N_A=$((${N_A}+${INCREMENT})) )) 
 do
 	D=${N_B}B/${N_A}A/
 	
