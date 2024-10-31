@@ -8,7 +8,6 @@ run_num=1
 
 fep=false
 rerun=false
-ti=true
 
 for (( i=1; i<=${N_rep}; i++ ))
 do
@@ -26,15 +25,6 @@ do
                         sbatch sub_solid_lammps.sh
                         cd -
 		fi
-	elif ${ti}; then 
-		n=1
-                while read line; do
-                        DIR=${D}/ti/x${n}/
-                        cd $DIR
-                        sbatch sub_solid_lammps.sh
-                        cd -
-                        n=$(($n+1))
-                done < "lambdas_coul.txt"
 	else
 		n=1
                 while read line; do

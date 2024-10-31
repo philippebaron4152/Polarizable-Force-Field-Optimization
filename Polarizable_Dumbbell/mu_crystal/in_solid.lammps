@@ -2,24 +2,24 @@ units            real
 atom_style       full 
 boundary         p p p 
 
-read_data 	data_crystal.lammps
+read_data 	    data_crystal.lammps
 
-pair_style 	PAIR_STYLE 8.5125
+pair_style 	    lj/cut/coul/long 8.5125
 special_bonds   lj/coul 0.0 0.0 0.0
-bond_style	harmonic
+bond_style	    harmonic
 
-variable	lambda equal LAMBDA
-variable	phi equal PHI
-variable	xi equal SPRING_SCALING
+variable	    lambda equal LAMBDA
+variable	    phi equal PHI
+variable	    xi equal SPRING_SCALING
 variable        SEED equal 123456+REPLACE_SEED
 
 variable        TK equal 50
 variable        kB equal 0.001987204259
 variable        lambda_s equal 2*${xi}*500*${kB}*${TK}
-variable 	e_AA equal 114.128*${kB}*${lambda}
+variable 	    e_AA equal 114.128*${kB}*${lambda}
 
-pair_coeff 	1 1 ${e_AA} 	3.405
-pair_coeff      1 2 0.0		0.5
+pair_coeff 	    1 1 ${e_AA} 	3.405
+pair_coeff      1 2 0.0		    0.5
 pair_coeff      1 3 0.0         0.5
 pair_coeff      1 4 0.0         0.5
 pair_coeff      2 2 0.0         0.5 
@@ -30,18 +30,19 @@ pair_coeff      3 4 0.0         0.5
 pair_coeff      4 4 0.0         0.5 
 
 pair_modify 	shift yes
-KSPACE_STYLE
+kspace_style    pppm 1.0e-6
 
-variable 	q equal 0.25*${phi}
-variable        alpha equal 0.25
+variable 	    q equal 0.5
+variable        q_scaled equal ${q}*${phi}
+variable        alpha equal 0.5
 
 variable        K1 equal 0.5*332.0716*(${q}^2)/${alpha}
 
-set             type 2 charge ${q}
-set             type 4 charge -${q}
+set             type 2 charge ${q_scaled}
+set             type 4 charge -${q_scaled}
 
 bond_coeff      1   100000       0.500 
-bond_coeff     	2   ${K1}	 0.0
+bond_coeff     	2   ${K1}	     0.0
 bond_coeff      3   ${K1}        0.0
 	
 fix             DRUDE all drude C D C D
@@ -52,9 +53,9 @@ neigh_modify     every 1 delay 0 check yes
 variable        dt equal 0.25
 
 group           EINSTEIN molecule > 1
-group		ATOMS type 1 3
-group		DRUDES type 2 4
-group		EINSTEIN_ATOMS intersect EINSTEIN ATOMS
+group		    ATOMS type 1 3
+group		    DRUDES type 2 4
+group		    EINSTEIN_ATOMS intersect EINSTEIN ATOMS
 group           EINSTEIN_DRUDES intersect EINSTEIN DRUDES
 
 group           FIXED molecule == 1
@@ -62,18 +63,15 @@ group           ROTATE id 2:4
 group           NVE_GROUP union ROTATE EINSTEIN_DRUDES
 group           A type 1
 
-group		THERMOSTAT1 id > 2
-group		THERMOSTAT2 id 2
-
-group		BOND1 type 1 2
-group		BOND2 type 3 4
+group		    THERMOSTAT1 id > 2
+group		    THERMOSTAT2 id 2
 
 displace_atoms  all random 0.01 0.01 0.01 ${SEED} units box
 
 velocity       	all create ${TK} 12345
 comm_modify     vel yes
 
-timestep	${dt}
+timestep	    ${dt}
 
 variable        TDK equal 1.0
 variable        PBAR equal 1.0
@@ -81,12 +79,7 @@ variable        PBAR equal 1.0
 variable        TD equal ${dt}*100
 variable        TDD equal ${dt}*10
 
-compute         1 BOND1 bond/local engpot
-compute         2 BOND2 bond/local engpot
-compute         3 BOND1 reduce sum c_1
-compute         4 BOND2 reduce sum c_2
 compute         MSD A msd
-
 fix             print_msd A ave/time 1 1 50 c_MSD[4] file msd.out
 fix             einstein_crystal A spring/self ${lambda_s}
 
@@ -97,11 +90,11 @@ fix             3 EINSTEIN_ATOMS rigid/nve/small molecule
 fix             4 NVE_GROUP nve
 
 thermo           100
-thermo_style     custom step epair pe lx ly lz vol press density ecoul elong c_3 c_4
+thermo_style     custom step epair pe lx ly lz vol press density ecoul elong
 
 dump            1 all custom 500 dump.coord id type x y z vx vy vz ix iy iz
 dump_modify     1 sort id format line "%5d %3d %13.8f %13.8f %13.8f %13.8f %13.8f %13.8f %3d %3d %3d" flush yes
 
 run          	7000000
 
-write_data 	out.lammps nocoeff
+write_data 	    out.lammps nocoeff

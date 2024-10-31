@@ -8,7 +8,7 @@
 #SBATCH --mail-user=pb4152@princeton.edu
 #SBATCH --mail-type=end
 #SBATCH --mail-type=fail
-#SBATCH --constraint=haswell
+#SBATCH --constraint=cascade
 
 module purge
 module load intel/19.1.1.217

@@ -8,16 +8,16 @@ output binary_lj.xyz
 
 structure a.xyz
   number 30
-  inside box 0. 0. 0. 47. 47. 47.
+  inside box 0. 0. 0. 60. 60. 60.
 end structure
 
 structure b.xyz
   number 1350
-  inside box 0. 0. 0. 47. 47. 47.
+  inside box 0. 0. 0. 60. 60. 60.
 end structure
 
 structure c.xyz
   number 1
-  inside box 0. 0. 0. 47. 47. 47.
+  inside box 0. 0. 0. 60. 60. 60.
 end structure
 

@@ -9,7 +9,7 @@ special_bonds   lj/coul 0.0 0.0 0.0
 bond_style	    harmonic
 
 variable 	    lambda equal 1.0
-variable        phi equal 0.2
+variable        phi equal 0.4
 variable 	    kB equal 0.001987204259
 
 variable 	    e_AA equal 114.128*${kB}
@@ -49,7 +49,6 @@ pair_coeff      4 6	    0.0             0.5     1.0
 pair_coeff      4 7	    0.0             0.5     1.0
 pair_coeff      4 8	    0.0             0.5     1.0
 pair_coeff      4 9	    0.0             0.5     1.0
-pair_coeff      4 10	0.0             0.5     1.0
 pair_coeff      5 5	    ${e_BB}         3.405   1.0
 pair_coeff      5 6	    ${e_BC}         3.798   ${lambda}
 pair_coeff      5 7	    0.0             0.5     1.0
@@ -76,7 +75,7 @@ variable 	    alpha equal 0.5
 set             type 2 charge ${q}
 set             type 4 charge -${q}
 set             type 7 charge ${q_ins}
-set             type 9 charge -${qins}
+set             type 9 charge -${q_ins}
 
 variable 	    K1 equal 0.5*332.0716*(${q}^2)/${alpha}
 variable        K2 equal 0.5*332.0716*(${q}^2)/${alpha}
