@@ -39,21 +39,23 @@ do
 			
 			n2=1
 			while read line_; do
-				infile=${DIR}/in_k_${n2}.lammps
-				touch ${infile}
-				cp in_vdw_rerun.lammps ${infile}
-                        	sed -i "s/LAMBDA/${line_}/g" ${infile}
-				sed -i "s/LOG/k_${n2}_log.lammps/g" ${infile}
-				sed -i "s/INFILE/${IN_FILE}/g" ${infile}
 
-				touch ${DIR}/sub_k_${n2}.sh
-				cp sub_rerun_lammps.sh ${DIR}/sub_k_${n2}.sh
-				sed -i "s/REPLACE/in_k_${n2}.lammps/g" ${DIR}/sub_k_${n2}.sh
+				if [ ${n2} -ge $((${n}-1)) && ${n2} -le $((${n}+1)) ]; then
+					infile=${DIR}/in_k_${n2}.lammps
+					touch ${infile}
+					cp in_rerun.lammps ${infile}
+					sed -i "s/LAMBDA/${line_}/g" ${infile}
+					sed -i "s/PHI/0.0/g" ${infile}
+					sed -i "s/LOG/k_${n2}_log.lammps/g" ${infile}
+					sed -i "s/INFILE/${IN_FILE}/g" ${infile}
+
+					touch ${DIR}/sub_k_${n2}.sh
+					cp sub_rerun_lammps.sh ${DIR}/sub_k_${n2}.sh
+					sed -i "s/REPLACE/in_k_${n2}.lammps/g" ${DIR}/sub_k_${n2}.sh
+				fi
 
 				n2=$((${n2}+1))
 			done < "lambdas_vdw.txt"
-				
-
 			n=$((${n}+1))
 		done < "lambdas_vdw.txt"
 	else
@@ -61,27 +63,32 @@ do
 		while read line; do
 			DIR=${D}coul/k_${n}/reruns
 
-                        if [ ! -d "${DIR}" ]; then
-                                mkdir -p ${DIR}
-                        fi
+			if [ ! -d "${DIR}" ]; then
+				mkdir -p ${DIR}
+			fi
 
-                        cp ${D}coul/k_${n}/run${run_num}/{${IN_FILE},dump.coord} ${DIR}
+			cp ${D}coul/k_${n}/run${run_num}/{${IN_FILE},dump.coord} ${DIR}
+			
+			n2=1
+			while read line_; do
 
-                        n2=${n}
+				if [ ${n2} -ge $((${n}-1)) && ${n2} -le $((${n}+1)) ]; then
+					infile=${DIR}/in_k_${n2}.lammps
+					touch ${infile}
+					cp in_rerun.lammps ${infile}
+					sed -i "s/LAMBDA/1.0/g" ${infile}
+					sed -i "s/PHI/${line_}/g" ${infile}
+					sed -i "s/LOG/k_${n2}_log.lammps/g" ${infile}
+					sed -i "s/INFILE/${IN_FILE}/g" ${infile}
 
-                        infile=${DIR}/in_k_${n2}.lammps
-			touch ${infile}
-			cp in_coul_rerun.lammps ${infile}
-			sed -i "s/PHI/1.0/g" ${infile}
-			sed -i "s/INFILE/${IN_FILE}/g" ${infile}
-			sed -i "s/LOG/k_${n2}_log.lammps/g" ${infile}
+					touch ${DIR}/sub_k_${n2}.sh
+					cp sub_rerun_lammps.sh ${DIR}/sub_k_${n2}.sh
+					sed -i "s/REPLACE/in_k_${n2}.lammps/g" ${DIR}/sub_k_${n2}.sh
+				fi
 
-			touch ${DIR}/sub_k_${n2}.sh
-			cp sub_rerun_lammps.sh ${DIR}/sub_k_${n2}.sh
-			sed -i "s/REPLACE/in_k_${n2}.lammps/g" ${DIR}/sub_k_${n2}.sh
-
-
-                        n=$((${n}+1))
+				n2=$((${n2}+1))
+			done < "lambdas_coul.txt"
+			n=$((${n}+1))
 		done < "lambdas_coul.txt"
 	fi
 

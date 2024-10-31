@@ -12,12 +12,9 @@ from tempfile import mkstemp
 from shutil import move, copymode
 from os import fdopen, remove
 
-MM_Na = 22.989769
-MM_Cl = 35.453
-MM_Ar = 39.948
 NA = 6.02214076 * 10 ** (23)
 
-def create_NaCl_crystal(a, N_pairs, lattice, plot_flag=False):
+def create_NaCl_crystal(a, MM, N_pairs, lattice, plot_flag=False):
     Cl_0 = []
     Na_0 = []
     N = 2 * N_pairs
@@ -88,23 +85,21 @@ def create_NaCl_crystal(a, N_pairs, lattice, plot_flag=False):
     
     N_Na = N_Cl = N ** 3 / 2
     
-    if lattice == "FCC":
-        rho = 1000 * ((N_Na * MM_Ar) / NA) / (V * 10 ** (-24))
-    else:
-        rho = 1000 * ((N_Na * MM_Na + N_Cl * MM_Cl) / NA) / (V * 10 ** (-24))
+
+    rho = 1000 * (N_Na * MM / NA) / (V * 10 ** (-24))
     return Na, Cl, lo, hi, rho
 
-def lattice_setup(obj_rho, N_pairs, path, lattice, bonds, d, sym, mol, pol, lj, sdm, sigma=None, cutoff=False):
+def lattice_setup(obj_rho, N_pairs, path, lattice, bonds, d, sym, mol, pol, lj, sdm, MM, sigma=None, cutoff=False):
     N_atoms = (N_pairs * 2) ** 3
     a1 = 3; a2 = 7
     val = 0
     while abs(val - obj_rho) > 0.0001:
-        _, _, _, _, rho1 = create_NaCl_crystal(a1, N_pairs, lattice)
-        _, _, _, _, rho2 = create_NaCl_crystal(a2, N_pairs, lattice)
+        _, _, _, _, rho1 = create_NaCl_crystal(a1, MM, N_pairs, lattice)
+        _, _, _, _, rho2 = create_NaCl_crystal(a2, MM, N_pairs, lattice)
 
         val = (rho1 + rho2) / 2
 
-        _, _, _, _, rho = create_NaCl_crystal((a1 + a2)/2, N_pairs, lattice)
+        _, _, _, _, rho = create_NaCl_crystal((a1 + a2)/2, MM, N_pairs, lattice)
         if rho > obj_rho:
             a1 = (a1 + a2)/2
         else:
@@ -113,7 +108,7 @@ def lattice_setup(obj_rho, N_pairs, path, lattice, bonds, d, sym, mol, pol, lj, 
     A = (a1 + a2) / 2
     print('a* = ' + str(A))
 
-    Na, Cl, lo, hi, rho = create_NaCl_crystal(A, N_pairs, lattice)
+    Na, Cl, lo, hi, rho = create_NaCl_crystal(A, MM, N_pairs, lattice)
     print('DENSITY = ' + str(rho) + ' kg/m^3')
     print('N_ATOMS = ' + str(N_atoms))
     print('DIMENSIONS = ', lo, hi)
@@ -173,8 +168,9 @@ argParser.add_argument('--lj', action=argparse.BooleanOptionalAction)
 argParser.add_argument('--cutoff', action=argparse.BooleanOptionalAction)
 argParser.add_argument("-s", "--sigma", type=float, help="LJ length scale")
 argParser.add_argument("-sdm", "--sym_mass", type=float, help="symmetrized drude mass")
+argParser.add_argument("-mm", "--molar_mass", type=float, help="molar mass of the species")
 
 args = argParser.parse_args()
 
 
-lattice_setup(args.rho,args.pairs,args.path, args.lattice, args.bonds, args.drudes, args.sym, args.mol, args.polarizable, args.lj, args.sym_mass, args.sigma, args.cutoff)
+lattice_setup(args.rho,args.pairs,args.path, args.lattice, args.bonds, args.drudes, args.sym, args.mol, args.polarizable, args.lj, args.sym_mass, args.molar_mass, args.sigma, args.cutoff)

@@ -1,24 +1,25 @@
 #!/bin/bash
 
 N_pair=6
+density=2490
 N=$(((2*${N_pair})*(2*${N_pair})*(2*${N_pair})/2))
 
 run_num=1
 N_rep=1
-rerun=false
 
 fep=true
+rerun=false
 
 for (( i=1; i<=${N_rep}; i++ ))
 do
 	D=${N}/${i}/
 
 	if [ ! -d "${D}" ]; then
-                mkdir -p ${D}
-        fi
+		mkdir -p ${D}
+	fi
 	
 	cd ${D}
-	python /scratch/gpfs/pb4152/Scripts/crystal_setup.py -p "$PWD" -n ${N_pair} -r 2490 -l "CP1" -b "A A1" -d "A A1" -sy "" -m "A" --polarizable
+	python /scratch/gpfs/pb4152/Scripts/crystal_setup.py -p "$PWD" -n ${N_pair} -r ${density} -l "CP1" -b "A A1" -d "A A1" -sy "" -m "A" --polarizable
 	cd -
 
 	if ${fep}; then
