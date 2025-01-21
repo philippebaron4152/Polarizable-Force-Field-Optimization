@@ -1,0 +1,23 @@
+#
+# Binary Lennard-Jones Fluid
+#
+
+tolerance 3.5
+filetype xyz
+seed -1
+output binary_lj.xyz
+
+structure a.xyz
+  number N_A
+  inside box 0. 0. 0. 45. 45. 45.
+end structure
+
+structure b.xyz
+  number 900
+  inside box 0. 0. 0. 45. 45. 45.
+end structure
+
+structure c.xyz
+  number 1
+  inside box 0. 0. 0. 45. 45. 45.
+end structure

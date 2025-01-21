@@ -1,0 +1,48 @@
+units            real 
+atom_style       full 
+boundary         p p p 
+
+read_data 	    data_crystal.lammps                         # Name of LAMMPS Data file 
+
+pair_style 	    lj/cut 8.5125                       # Cut-off matching Espinosa et. al. (2016)
+special_bonds   lj/coul 0.0 0.0 0.0                 # Turns off intra molecular interactions
+bond_style	    harmonic
+
+variable 	    kB equal 0.001987204259     # Boltzmann constant [kcal / (mol K)]
+variable        lambda equal 1.0
+variable	    xi equal 1.0
+
+variable        dt equal 1.0                                # Time-step
+variable        TK      equal 50                            # Core temperature (K)
+variable        PBAR    equal 1.0                           # System pressure (bar)    
+
+variable 	    e_AA equal EPS_AA*${kB}*${lambda}    # solute - solute LJ interaction
+variable        lambda_s equal ${xi}*1000*${kB}*${TK}
+
+variable        sigma_AA equal SIGMA_AA
+
+# 1 -> LJ bead (solute)
+
+pair_coeff      1 1     ${e_AA}         ${sigma_AA}    
+
+pair_modify 	shift yes               # Shift potential to 0 at cut-off
+
+neighbor         2.0 bin                                    # Neighbor-list settings
+neigh_modify     every 1 delay 0 check yes
+
+velocity        all create ${TK} 12345                    # Generate random initial Maxwell-Boltzmann velocities  
+
+log             log_rerun.lammps
+
+group           einstein id > 1
+
+# Barostat and Thermostat damping constants
+variable        TD equal ${dt}*100
+variable        PD equal ${dt}*1000
+
+fix             einstein_crystal einstein spring/self ${lambda_s}
+
+thermo           100
+thermo_style     custom step pe epair ecoul elong ebond lx ly lz vol press
+
+rerun           dump.coord dump x y z vx vy vz ix iy iz box yes format native

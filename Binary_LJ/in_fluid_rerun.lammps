@@ -1,0 +1,51 @@
+units            real 
+atom_style       full 
+boundary         p p p 
+
+read_data 	    data.lammps                         # Name of LAMMPS Data file 
+
+pair_style 	    lj/cut/soft 2 1.0 8.5125            # Cut-off matching Espinosa et. al. (2016)
+special_bonds   lj/coul 0.0 0.0 0.0                 # Turns off intra molecular interactions
+bond_style	    harmonic
+
+variable 	    kB equal 0.001987204259     # Boltzmann constant [kcal / (mol K)]
+variable        lambda equal LAMBDA
+
+variable 	    e_AA equal EPS_AA*${kB}    # solute - solute LJ interaction
+variable        e_AB equal EPS_AB*${kB}    # solute - solvent LJ interaction
+variable        e_BB equal EPS_BB*${kB}    # solvent - solvent LJ interaction
+
+variable        sigma_AA equal SIGMA_AA
+variable        sigma_AB equal SIGMA_AB
+variable        sigma_BB equal SIGMA_BB
+
+# 1 -> LJ bead (solute), 2 -> LJ bead (solvent)
+
+pair_coeff      1 1     ${e_AA}         ${sigma_AA}     1.0
+pair_coeff      1 2     ${e_AB}         ${sigma_AB}     1.0
+pair_coeff      1 3     ${e_AA}         ${sigma_AA}     ${lambda}
+pair_coeff      2 2     ${e_BB}         ${sigma_BB}     1.0
+pair_coeff      2 3     ${e_AB}         ${sigma_AB}     ${lambda}
+pair_coeff      3 3     ${e_AA}         ${sigma_AA}     ${lambda}
+
+pair_modify 	shift yes               # Shift potential to 0 at cut-off
+
+neighbor         2.0 bin                                    # Neighbor-list settings
+neigh_modify     every 1 delay 0 check yes
+
+min_style 	    cg
+minimize 	    1e-3 1e-3 10000 10000
+
+variable        dt equal 1.0                                # Time-step
+
+variable        TK      equal 50                            # Core temperature (K)
+variable        PBAR    equal 1.0                           # System pressure (bar)    
+
+velocity        all create ${TK} 12345                    # Generate random initial Maxwell-Boltzmann velocities  
+
+log             LOG
+
+thermo_style    custom step press pe density epair ebond
+thermo          1
+
+rerun           dump.coord dump x y z vx vy vz ix iy iz box yes format native
