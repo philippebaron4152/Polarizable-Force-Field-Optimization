@@ -90,6 +90,15 @@ def extrapolation_error(Xs, A, A_std, N_samples):
     
     return final_coeffs, final_coeffs[1], np.std(inf_dist)
 
+def fit_func(x, a, b, c, d):
+    return np.log(a * x ** (1/2) + b * x ** 2 + c * x + d)
+
+def mu_model(x, mu):
+    bounds=([0, 0, 0, -np.inf], [np.inf, np.inf, np.inf, np.inf])
+    params, _ = curve_fit(fit_func, x, mu, bounds=bounds)
+    MU_model = lambda y: fit_func(y,*params)
+    return MU_model
+
 # Set parameters for Bennett Acceptance Ratio solver
 solver_options = {"maximum_iterations":50000,"verbose":True}
 solver_protocol = {"method":"adaptive","options":solver_options}
@@ -100,7 +109,7 @@ current_dir = os.getcwd()
 lambdas = np.genfromtxt(current_dir + "/lambdas.txt")
 conc_dirs = np.sort(os.listdir(current_dir + "/aqueous/"))
 
-xA = np.zeros(len(conc_dirs))
+xA = np.zeros(len(conc_dirs)); Vs = np.zeros(len(conc_dirs))
 MU = np.zeros(len(conc_dirs)); MU_ERR = np.zeros(len(conc_dirs))
 for ii, dir in enumerate(conc_dirs):
     path = current_dir + "/aqueous/" + dir
@@ -120,19 +129,20 @@ for ii, dir in enumerate(conc_dirs):
 
     path_ideal = path + "/lambda_1/log_run.lammps"
     V = np.mean(np.array(lammps_logfile.File(path_ideal).get("Volume")[1000:]) * (10 ** (-30)))
+    Vs[ii] = V
     mu_ideal = np.log((N_A + 0.5) * L_db / V) 
 
-    mu = 0; mu_err = 0
+    mu = 0; mu_err = 0; t=100
     for i, l in enumerate(lambdas[:-1]):
         p_00 = path + "/lambda_" + str(i+1) + "/log_.lammps"
         p_01 = path + "/lambda_" + str(i+1) + "/log_up.lammps"
         p_10 = path + "/lambda_" + str(i+2) + "/log_down.lammps"
         p_11 = path + "/lambda_" + str(i+2) + "/log_.lammps"
 
-        U_00 = np.array(lammps_logfile.File(p_00).get("PotEng"))[::nn] * BETA
-        U_01 = np.array(lammps_logfile.File(p_01).get("PotEng"))[::nn] * BETA
-        U_10 = np.array(lammps_logfile.File(p_10).get("PotEng"))[::nn] * BETA
-        U_11 = np.array(lammps_logfile.File(p_11).get("PotEng"))[::nn] * BETA
+        U_00 = np.array(lammps_logfile.File(p_00).get("PotEng"))[t::nn] * BETA
+        U_01 = np.array(lammps_logfile.File(p_01).get("PotEng"))[t::nn] * BETA
+        U_10 = np.array(lammps_logfile.File(p_10).get("PotEng"))[t::nn] * BETA
+        U_11 = np.array(lammps_logfile.File(p_11).get("PotEng"))[t::nn] * BETA
         L = np.min([len(U_00), len(U_01), len(U_10), len(U_11)])
         
         Ukn = np.array([np.hstack((U_00[:L], U_10[:L])), np.hstack((U_01[:L], U_11[:L]))])
@@ -147,13 +157,12 @@ for ii, dir in enumerate(conc_dirs):
     MU[ii] = mu_ideal + mu
     MU_ERR[ii] = np.sqrt(mu_err)
 
-params = np.polyfit(xA, MU, 4)
-mu_model = np.poly1d(params)
 plt.figure(figsize=(8,5))
 plt.scatter(xA, MU, c='r', marker='s', s=70)
 plt.errorbar(xA, MU, MU_ERR, c='r', capsize=3, linestyle="")
-X = np.linspace(np.min(xA)-0.005, np.max(xA)+0.005, 1000)
-plt.plot(X, mu_model(X), 'r--')
+f = mu_model(xA, MU)
+X = np.linspace(np.min(xA)-0.005, np.max(xA)+0.05, 1000)
+plt.plot(X, f(X), "r--")
 
 ###### COMPUTE CRYSTAL CHEMICAL POTENTIAL ######
 
@@ -210,10 +219,9 @@ for i in range(len(xA)):
 
 solubility = np.zeros(M)
 for i in range(M):
-    params = np.polyfit(xA, samples[i, :], 4)
-    mu_model = np.poly1d(params)
+    MU_model = mu_model(xA, samples[i, :])
     mu_crys_i = samples_crys[i]
-    f = lambda x: mu_model(x) - mu_crys_i
+    f = lambda x: MU_model(x) - mu_crys_i
     solubility[i] = fsolve(f, 0.035)
 
 m_s = np.mean(solubility)

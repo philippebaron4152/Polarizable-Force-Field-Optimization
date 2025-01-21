@@ -117,7 +117,7 @@ for N in 4 6; do
     sed -i "s/SIGMA_AA/${sigma_AA}/g" $path_density/in_density.lammps
     cd $path_density
     python $base_path/crystal_setup.py -p "$PWD" -n ${N} -r 1500 -l "FCC" -b "" 
-    sbatch sub_density_lammps.sh
+    # sbatch sub_density_lammps.sh
     cd -
 
     path_fep=$base_path/crystal/${n_atoms}/fep/
