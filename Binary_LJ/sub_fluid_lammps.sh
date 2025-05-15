@@ -3,16 +3,16 @@
 #SBATCH --nodes=1
 #SBATCH --ntasks=16
 #SBATCH --cpus-per-task=1
-#SBATCH --mem=1G
+#SBATCH --mem=4G
 #SBATCH --time=02:00:00
 #SBATCH --mail-user=pb4152@princeton.edu
 #SBATCH --mail-type=end
 #SBATCH --mail-type=fail
-#SBATCH --constraint=cascade
 
 module purge
-module load intel/19.1.1.217
-module load intel-mpi/intel/2019.7
+module load intel-oneapi/2024.2
+module load intel-mpi/oneapi/2021.13
+module load intel-mkl/2024.2
 export OMP_NUM_THREADS=$SLURM_CPUS_PER_TASK
 
 srun $HOME/.local/bin/lmp_della -in in_fluid.lammps

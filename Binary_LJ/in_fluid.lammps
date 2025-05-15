@@ -78,6 +78,6 @@ thermo_style     custom step pe epair ecoul elong ebond lx ly lz vol press
 dump            1 all custom 500 dump.coord id type x y z vx vy vz ix iy iz
 dump_modify     1 sort id format line "%5d %3d %13.8f %13.8f %13.8f %13.8f %13.8f %13.8f %3d %3d %3d" flush yes
 
-run          	10000000
+run          	NSTEPS
 
 write_data 	    out.lammps nocoeff
