@@ -117,13 +117,14 @@ m_s = 0.01 * np.abs(MU - mu_solid_LJ) ** 2
 N_A_m_s = int(m_s * N_tot)
 dN = int(N_A_m_s * 0.2)
 N_A_start_val = N_A_m_s - 3*dN 
+N_lim = 0.95 * N_tot
 
 N_As = np.array([N_A_start_val + j*dN for j in range(6)])
-N_As = N_As[(N_As > 0) & (N_As < N_tot)] 
+N_As = N_As[(N_As > 0) & (N_As < N_lim)] 
 while len(N_As) < 5:
     dN /= 1.5
     N_As = np.array([N_A_start_val + j*dN for j in range(6)])
-    N_As = N_As[(N_As > 0) & (N_As < N_tot)]    
+    N_As = N_As[(N_As > 0) & (N_As < N_lim)]    
 
 with open("conc.txt", "w+") as f:
     for N_A in N_As:
