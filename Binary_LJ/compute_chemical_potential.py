@@ -93,12 +93,11 @@ def extrapolation_error(Xs, A, A_std, N_samples):
 def fit_func(x, a, b, c, d):
     return np.log(a * x ** (1/2) + b * x ** 2 + c * x + d)
 
-def mu_model(x, mu):
+def mu_model(x, mu, V_f):
     bounds=([0, 0, 0, -np.inf], [np.inf, np.inf, np.inf, np.inf])
     params, _ = curve_fit(fit_func, x, mu, bounds=bounds)
-    MU_model = lambda y: fit_func(y,*params)
+    MU_model = lambda y: fit_func(y,*params) + np.log((y * N_tot + 0.5) * L_db / V_f(y))
     return MU_model
-
 
 if __name__ == "__main__":
     # Set parameters for Bennett Acceptance Ratio solver
@@ -112,7 +111,10 @@ if __name__ == "__main__":
     conc_dirs = [d for d in np.sort(os.listdir(current_dir + "/aqueous/")) if "A" in d]
 
     xA = np.zeros(len(conc_dirs)); Vs = np.zeros(len(conc_dirs))
-    MU = np.zeros(len(conc_dirs)); MU_ERR = np.zeros(len(conc_dirs))
+    MU_ideal = np.zeros(len(conc_dirs))
+    MU_ex = np.zeros(len(conc_dirs))
+    MU_ERR = np.zeros(len(conc_dirs))
+
     for ii, dir in enumerate(conc_dirs):
         path = current_dir + "/aqueous/" + dir
         N_A = float(dir[:-1])
@@ -156,15 +158,21 @@ if __name__ == "__main__":
             mu += results['Delta_f'][0,-1]
             mu_err += (results['dDelta_f'][0,-1]) ** 2
 
-        MU[ii] = mu_ideal + mu
+        MU_ideal[ii] = mu_ideal
+        MU_ex[ii] = mu
         MU_ERR[ii] = np.sqrt(mu_err)
 
+    MU = MU_ex + MU_ideal
     plt.figure(figsize=(8,5))
     plt.scatter(xA, MU, c='r', marker='s', s=70)
     plt.errorbar(xA, MU, MU_ERR, c='r', capsize=3, linestyle="")
-    f = mu_model(xA, MU)
+
+    V_params = np.polyfit(xA, Vs, 1)
+    V_f = lambda x: V_params[0] * x + V_params[1]
+    f = mu_model(xA, MU_ex, V_f)
     X = np.linspace(np.min(xA)-0.005, np.max(xA)+0.05, 1000)
     plt.plot(X, f(X), "r--")
+
 
     ###### COMPUTE CRYSTAL CHEMICAL POTENTIAL ######
 
@@ -212,25 +220,33 @@ if __name__ == "__main__":
 
     ###### COMPUTE SOLUBILITY ######
 
-    M = 50
+    M = 20
     samples = np.random.normal(0.0, 1.0, (M, len(xA)))
     samples_crys = mu_solid_LJ_err*np.random.normal(0.0, 1.0, M) + mu_solid_LJ
 
     for i in range(len(xA)):
-        samples[:,i] = samples[:,i] * MU_ERR[i] + MU[i]
+        samples[:,i] = samples[:,i] * MU_ERR[i] + MU_ex[i]
+
+    MU_model = mu_model(xA, MU_ex, V_f)
+    f = lambda x: MU_model(x) - mu_solid_LJ
+    initial_guess = np.mean(xA); m_s = initial_guess
+    while initial_guess == m_s:
+        new_initial_guess = np.random.uniform(0.0, 1.0) * (xA[-1] - xA[0]) + xA[0]
+        m_s = fsolve(f, new_initial_guess)
+        initial_guess = new_initial_guess
 
     solubility = np.zeros(M)
     for i in range(M):
-        MU_model = mu_model(xA, samples[i, :])
+        MU_model = mu_model(xA, samples[i, :], V_f)
         mu_crys_i = samples_crys[i]
         f = lambda x: MU_model(x) - mu_crys_i
-        solubility[i] = fsolve(f, np.mean(xA))
+        solubility[i] = fsolve(f, new_initial_guess)
 
     m_s = np.mean(solubility)
     solubility_err = np.std(solubility) / np.sqrt(M)
     plt.axvline(x= m_s - solubility_err, c="k", linestyle=":")
     plt.axvline(x= m_s + solubility_err, c="k", linestyle=":")
-    plt.text(m_s + 0.01, MU[0], r"$m_s = {}  \pm {}$".format(np.round(m_s,4), np.round(solubility_err,4)), fontsize=16)
+    plt.text(m_s + 0.01, MU[0], r"$m_s = {}  \pm {}$".format(np.round(m_s,5), np.round(solubility_err,5)), fontsize=16)
 
     plt.xlabel(r"$x_A$", fontsize=16)
     plt.ylabel(r"$\mu/k_BT$", fontsize=16)
